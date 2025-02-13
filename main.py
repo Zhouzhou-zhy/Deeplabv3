@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 
 from torch.utils import data
-from datasets import VOCSegmentation, Cityscapes
+from datasets import VOCSegmentation, Cityscapes,MyDataset
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
 
@@ -24,11 +24,13 @@ def get_argparser():
     parser = argparse.ArgumentParser()
 
     # Datset Options
-    parser.add_argument("--data_root", type=str, default='./datasets/data',
+    parser.add_argument("--train_root", type=str, default='/home/zhy/zhy-cv/seg_test/The_cropped_image_tiles_and_raster_labels/train',
                         help="path to Dataset")
-    parser.add_argument("--dataset", type=str, default='voc',
+    parser.add_argument("--val_root", type=str, default='/home/zhy/zhy-cv/seg_test/The_cropped_image_tiles_and_raster_labels/val',
+                        help="path to Dataset")
+    parser.add_argument("--dataset", type=str, default='Mydataset',
                         choices=['voc', 'cityscapes'], help='Name of dataset')
-    parser.add_argument("--num_classes", type=int, default=None,
+    parser.add_argument("--num_classes", type=int, default=2,
                         help="num classes (default: None)")
 
     # Deeplab Options
@@ -75,7 +77,7 @@ def get_argparser():
                         help="random seed (default: 1)")
     parser.add_argument("--print_interval", type=int, default=10,
                         help="print interval of loss (default: 10)")
-    parser.add_argument("--val_interval", type=int, default=100,
+    parser.add_argument("--val_interval", type=int, default=10,
                         help="epoch interval for eval (default: 100)")
     parser.add_argument("--download", action='store_true', default=False,
                         help="download datasets")
@@ -150,6 +152,28 @@ def get_dataset(opts):
                                split='train', transform=train_transform)
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
+    else:
+        train_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            #et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+            et.ExtRandomHorizontalFlip(),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        val_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        train_dst = MyDataset(root=opts.train_root,
+                             transform=train_transform)
+        val_dst = MyDataset(root=opts.val_root,
+                             transform=val_transform)
     return train_dst, val_dst
 
 
