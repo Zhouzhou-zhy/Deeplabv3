@@ -46,8 +46,10 @@ class MyDataset(Dataset):
         mask = Image.open(mask_path)
 
         if self.transform is not None:
-            image,mask = self.transform(image,mask)
-           
+            image = self.transform(image)
+            mask = self.transform(mask)
+        #mask = torch.from_numpy(np.array(mask)).long()  # 转为 LongTensor
+        #assert mask.min() >= 0 and mask.max() < 8, "标签值越界"
 
         return image, mask
 

@@ -10,7 +10,7 @@ from torch.utils import data
 from datasets import VOCSegmentation, Cityscapes,MyDataset
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
-
+import torchvision.transforms as transforms
 import torch
 import torch.nn as nn
 from utils.visualizer import Visualizer
@@ -18,19 +18,22 @@ from network.modeling import deeplabv3plus_mobilevit
 from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.enabled = False
 
 
 def get_argparser():
     parser = argparse.ArgumentParser()
 
     # Datset Options
-    parser.add_argument("--train_root", type=str, default='/home/zhy/zhy-cv/seg_test/The_cropped_image_tiles_and_raster_labels/train',
+    parser.add_argument("--train_root", type=str, default='/root/autodl-tmp/03/train/',
                         help="path to Dataset")
-    parser.add_argument("--val_root", type=str, default='/home/zhy/zhy-cv/seg_test/The_cropped_image_tiles_and_raster_labels/val',
+    parser.add_argument("--val_root", type=str, default='/root/autodl-tmp/03/val/',
                         help="path to Dataset")
     parser.add_argument("--dataset", type=str, default='Mydataset',
                         choices=['voc', 'cityscapes'], help='Name of dataset')
-    parser.add_argument("--num_classes", type=int, default=2,
+    parser.add_argument("--num_classes", type=int, default=8,
                         help="num classes (default: None)")
 
     # Deeplab Options
@@ -57,7 +60,7 @@ def get_argparser():
     parser.add_argument("--step_size", type=int, default=10000)
     parser.add_argument("--crop_val", action='store_true', default=False,
                         help='crop validation (default: False)')
-    parser.add_argument("--batch_size", type=int, default=16,
+    parser.add_argument("--batch_size", type=int, default=4,
                         help='batch size (default: 16)')
     parser.add_argument("--val_batch_size", type=int, default=4,
                         help='batch size for validation (default: 4)')
@@ -153,21 +156,21 @@ def get_dataset(opts):
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
     else:
-        train_transform = et.ExtCompose([
-            # et.ExtResize( 512 ),
+        train_transform = transforms.Compose([
+            #et.ExtResize( 256 ),
             #et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
-            et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
-            et.ExtRandomHorizontalFlip(),
-            et.ExtToTensor(),
-            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225]),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.3),
+            transforms.RandomRotation(degrees=15),
+            transforms.RandomApply([transforms.ElasticTransform(alpha=25.0)], p=0.2),
+            #transforms.ColorJitter(brightness=0.1, contrast=0.1),
         ])
 
-        val_transform = et.ExtCompose([
-            # et.ExtResize( 512 ),
-            et.ExtToTensor(),
-            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225]),
+        val_transform = transforms.Compose([
+            ##et.ExtResize( 256 ),
+            # et.ExtToTensor(),
+            # et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+            #                 std=[0.229, 0.224, 0.225]),
         ])
 
         train_dst = MyDataset(root=opts.train_root,
@@ -268,8 +271,8 @@ def main():
           (opts.dataset, len(train_dst), len(val_dst)))
 
     # Set up model (all models are 'constructed at network.modeling)
-    #model = network.modeling.__dict__[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
-    model=deeplabv3plus_mobilevit(num_classes=opts.num_classes,pretrained_backbone=False)
+    model = network.modeling.__dict__[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
+    #model=deeplabv3plus_mobilevit(num_classes=opts.num_classes,pretrained_backbone=False)
     if opts.separable_conv and 'plus' in opts.model:
         network.convert_to_separable_conv(model.classifier)
     utils.set_bn_momentum(model.backbone, momentum=0.01)

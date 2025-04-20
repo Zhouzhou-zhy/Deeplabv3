@@ -1,14 +1,14 @@
-from utils import IntermediateLayerGetter
-from _deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3
-from backbone import (
+from .utils import IntermediateLayerGetter
+from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3
+from .backbone import (
     resnet,
     mobilenetv2,
     hrnetv2,
     xception,
     
 )
-from backbone.mobilevit_bone import MobileViTBackbone
-from backbone.mobilevit import mobile_vit_small, mobile_vit_x_small, mobile_vit_xx_small
+from .backbone.mobilevit_bone import MobileViTBackbone
+from .backbone.mobilevit import mobile_vit_small, mobile_vit_x_small, mobile_vit_xx_small
 
 def _segm_mobilevit(name, backbone_name, num_classes, mobilevit_size,pretrained_backbone=False):
     if mobilevit_size == 'xx_small':
@@ -224,7 +224,7 @@ def deeplabv3plus_resnet101(num_classes=21, output_stride=8, pretrained_backbone
     return _load_model('deeplabv3plus', 'resnet101', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
 
 
-def deeplabv3plus_mobilenet(num_classes=21, output_stride=8, pretrained_backbone=True):
+def deeplabv3plus_mobilenet(num_classes=21, output_stride=8, pretrained_backbone=False):
     """Constructs a DeepLabV3+ model with a MobileNetv2 backbone.
 
     Args:
@@ -243,14 +243,14 @@ def deeplabv3plus_xception(num_classes=21, output_stride=8, pretrained_backbone=
         pretrained_backbone (bool): If True, use the pretrained backbone.
     """
     return _load_model('deeplabv3plus', 'xception', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
-def deeplabv3plus_mobilevit(num_classes=2,  pretrained_backbone=False):
+def deeplabv3plus_mobilevit(num_classes=8,  pretrained_backbone=False):
     """Constructs a DeepLabV3+ model with a mobilevit backbone.
     Args:
         num_classes (int): number of classes.
         output_stride (int): output stride for deeplab.
         pretrained_backbone (bool): If True, use the pretrained backbone.
     """
-    return _segm_mobilevit('deeplabv3plus', 'MobileViT_16', num_classes=2, mobilevit_size='',pretrained_backbone=pretrained_backbone)
+    return _segm_mobilevit('deeplabv3plus', 'MobileViT_16', num_classes=8, mobilevit_size='',pretrained_backbone=pretrained_backbone)
 if __name__ == '__main__':
     # 创建使用ResNet-101的DeepLabV3+模型
     model = deeplabv3plus_mobilevit(num_classes=2, pretrained_backbone=False)
